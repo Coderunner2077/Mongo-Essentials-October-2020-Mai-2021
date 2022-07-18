@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+		<title>Commandes Mongo sur un exemple de base importée</title>
+		<style>
+			h1, h2, h3, h4, ul, ol {
+				margin-left: 20%;
+			}
+			pre {
+				font-size: 1.3em;
+			}
+
+			.code {
+				background: #eee;
+				width: 80%;
+				border: 1px solid s#ddd;
+				margin-left: 15%;
+				margin-right: 5%;
+				text-align: left;
+			}
+
+			.path {
+				background: #eee;
+				border: 1px solid s#ddd;
+				padding: 2px;
+			}
+
+
+		</style>
+	</head>
+	<body>
+		<h2>Commandes Mongo sur un exemple de base importée</h2>
+		<pre>
+			Nous allons intégrer une base de données touristique sur la ville de Paris. Téléchargez le fichier "tour-Pedia_paris.json.zip" à importer. Cette base de données contient des lieux de différentes catégories : des points d’intérêt (POI), des restaurants (restaurant), des attractions (attraction), des hôtels (accommodation).
+
+			La structure des documents que vous pourrez consulter avec la commande “findOne()” est présenté ci-dessous. Elle nous servira de base pour l’interrogation: 
+			
+			<div class="code">
+				{
+  					"_id" : 83292,
+   					"contact" : {
+      					"website" : "http://www.trocaderolatour.com",
+      					"GooglePlaces" : "https://plus.google.com/107754700607079935569/about?hl=en-US"
+  					},
+   					"name" : "Best Western Premier Trocadero La Tour",
+   					"location" : {
+      					"city" : "Paris",
+      					"coord" : {"coordinates" : [2.2795155644417,48.858311118724],"type" : "Point"},
+      					"address" : "Paris,   France    5 bis, rue Massenet, 16. Trocadéro - Passy, 75016 Paris"
+   					},
+   					"category" : "accommodation",
+   					"description" : " Situé à 15 minutes à pied de la tour Eiffel, le Best Western Premier Trocadero La Tour bénéficie d'un emplacement idéal pour découvrir Paris. Il abrite un bar lambrissé doté de fauteuils en cuir et un patio.",
+   					"services" : [
+      					"jardin",
+     					"terrasse",
+      					"journaux",
+      					"bar",
+      					"petit-déjeuner en chambre",
+      					"réception ouverte 24h 24",
+      					"enregistrement et règlement rapides",
+      					"bagagerie",
+      					"service d'étage",
+      					"salles de réunions banquets",
+     					"centre d'affaires",
+      					"garde d'enfants",
+      					"blanchisserie",
+      					"chambres non-fumeurs"
+   					],
+  					"reviews" : [
+     					{
+          					"wordsCount" : 30,
+          					"rating" : 0,
+          					"language" : "en",
+         					"source" : "Foursquare",
+          					"text" : "Nice beds, rooms andstaff. Perfect central location. Breakfast is very expensive for a contenintal breakfast, however many bakeries and restaurants in the area. Will stay here again my next visit.",
+          				"time" : "2010-09-30"
+      					}
+   					]
+				}
+			</div>
+
+			Pour chacune des questions suivantes, veuillez fournir la commande associée et non le résultat.
+			<ol>
+				<li>Importez le jeu de données tour-pedia.json dans une base de données “tourPedia” avec une collection “paris” ;</li>
+
+				<li>Filtrez les lieux par type “accommodation” et service “blanchisserie” ;</li>
+
+				<li>Projetez les adresses des lieux de type "accommodation" ;</li>
+
+				<li>Filtrez les listes de commentaires (reviews) des lieux, pour lesquelles au moins un commentaire (reviews) est écrit en anglais (en) et a une note (rating) supérieure à 3 (attention, LE commentaire en anglais doit avoir un rating de 3 ou plus) ;</li>
+
+				<li>Groupez les lieux par catégorie et comptez les ;</li>
+
+				<li>Créez un pipeline d’agrégation pour les lieux de catégorie "accommodation", et donnez le nombre de lieux par valeur de "services".</li>
+			</ol>
+
+			<h3>Voici mes solutions: </h3>
+
+			<ol>
+				<li>La commande “mongoimport” est présente avec les paramètres de bases de données “--db tourPedia”, collection “--collection paris” et fichier à importer “tour-pedia.json” :
+					<div class="code">
+						mongoimport --db tourPedia --collection paris C:/Users/Harry/Documents/Mongo/tourPedia_paris.json
+					</div>
+				</li>
+				<li>
+					Le document JSON requête (premier paramètre de la fonction "find()") contient les deux critères demandés "services" et "category". 
+					<div class="code">
+						db.paris.find({
+							category: "accommodation", 
+							services: {$in: ["blanchisserie"]} 
+						})
+					</div>
+				</li>
+				<li>
+					Le document JSON présent en deuxième paramètre de la fonction "find()" contient la clé du document à projeter "location.address". Étant donné que la clé "address" est imbriquée dans "location", la projection est la combinaison des deux, séparés par un point "."
+
+					<div class="code">
+						db.paris.find(
+							{
+								category: "accommodation"
+							}, 
+							{
+								"location.address": 1,
+								_id: 0
+							}
+						);
+					</div>
+				</li>
+				<li>
+					La liste de documents "reviews" est filtrée. Comme les critères sur les clés "language" et "rating" sont utilisés sur le même document de la liste "reviews", l'opérateur $elemMatch est utilisé et imbrique les deux critères.
+					<div class="code">
+						db.paris.find({
+							reviews: {
+								$elemMatch: {
+									language: "en",
+									rating: { $gte: 3}
+								}
+							}
+						}, 
+						{
+							"reviews.text": 1,
+							_id: 0
+						});
+					</div>
+				</li>
+				<li>
+					La fonction "aggregate()" est utilisée avec une liste d'opérateurs "[ ]". L'opérateur $group, est appliqué sur la catégorie : _id : "$category" (le "$" est obligatoire). Pour compter le résultat {$sum:1} est associé à une clé ("tot" n'est pas obligatoire, n'importe quel nom peut être utilisé
+					<div class="code">
+						db.paris.aggregate([
+							{$group: {
+								_id: "$category",
+								"total": {$sum: 1}
+							}}
+						]);
+					</div>
+				</li>
+				<li>
+					La liste d'opérateurs de la fonction "aggregate()" contient trois opérateurs : $match, $unwind et $group. L'ordre $match/$unwind n'est pas indispensable ici. Par contre, l'opérateur $group est le dernier opérateur de la liste. Les opérateurs $unwind et $group doivent contiennent "$services" (sans oublier le $).
+					<div class="code">
+						db.paris.aggregate([
+							{$match: {
+								category: "accommodation"
+							}},
+							{$unwind: "$services"},
+							{$group: {
+								_id: "$services",
+								"total": {$sum: 1}
+							}},
+							{$sort: {
+								_id: 1
+							}}
+						]);
+					</div>
+				</li>
+			</ol>
+		</pre>
+	</body>
+</html>

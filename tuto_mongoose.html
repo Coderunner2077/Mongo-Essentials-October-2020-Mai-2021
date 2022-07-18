@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+		<title>Introduction to Mongoose for MongoDB</title>
+		<style>
+			h1, h2, h3, h4, ul, ol {
+				margin-left: 20%;
+			}
+			pre {
+				font-size: 1.3em;
+			}
+
+			.code {
+				background: #eee;
+				width: 80%;
+				border: 1px solid s#ddd;
+				margin-left: 15%;
+				margin-right: 5%;
+				text-align: left;
+			}
+
+			.path {
+				background: #eee;
+				border: 1px solid s#ddd;
+				padding: 2px;
+			}
+
+
+		</style>
+	</head>
+	<body>
+		<h2>Introduction to Mongoose for MongoDB</h2>
+		<pre>
+			Mongoose is an Object Data Modeling (ODM) library for MongoDB and Node.js. It 
+			manages relationships between data, provides schema validation, and is used to 
+			translate between objects in code and the representation of those objects in
+			MongoDB. 
+			<img src="odm.jpeg" alt="odm" />
+
+			MongoDB is a schema-less NoSQL document database. It means you can store JSON
+			documents in it, and the structure of those documents can vary as it is not
+			enforced like SQL databases. This is one of the advantages of using NoSQL as
+			it speed ups application development and reduces the complexity of
+			deployments.
+
+			Below is an example of how data is stored in Mongo vs SQL Database: 
+
+			<a href="https://www.freecodecamp.org/news/introduction-to-mongoose-for-mongodb-d2a7aa593c57/"  target="_blank">Click here and scroll</a>
+
+			<h2>Terminologies</h2>
+			<h3>Collections</h3>
+			'Collections' in MondoDB are equivalent to tables in relational databases. 
+			They can hold multiple JSON documents.
+
+			<h3>Documents</h3>
+			'Documents' are equivalent to records or rows of data in SQL. While a SQL
+			row can reference data in other tables, Mongo documents usually combine 
+			that in a document.
+
+			<h3>Fields</h3>
+			'Fields' or attributes are similar to columns in a SQL table.
+
+			<h3>Schema</h3>
+			While MongoDB is a schema-less, SQL defines a schema via the table definition.
+			A Mongoose 'schema' is a document data structure (or shape of the document) 
+			that is enforced via the application layer.
+
+			<h3>Models</h3>
+			'Models' are higher-order constructors that take a schema and create an instance
+			of a document equivalent to records in a relational database.
+
+			<h2>Getting started</h2>
+			<h3>Mongo installation</h3>
+			Download the appropriate MongoDB version for your Operating system from the
+			<a href="https://www.mongodb.com/try/download/community" target="_blank">MongoDB website</a>.
+
+			Let's navigate through some of the basics of Mongoose by implementing a model that
+			represents data for a simplified address book.
+
+			I am using Visual Studio Code, Node 8.9, and NPM 5.6. Fire up your favourite IDE,
+			create a blank project, and let's get started! We will be using the 
+			limited ES6 syntax in Node, so we won't be configuring Babel.
+
+			<h3>NPM Install</h3>
+			Let's go to the project folder and initialize our project
+
+			<div class="code">
+				npm init -y
+			</div>
+
+			Let's install Mongoose and a validation library with the following 
+			command: 
+
+			<div class="code">
+				npm install mongoose validator
+			</div>
+
+			The abode install command will install the latest version of the 
+			libraries. The Mongoose syntax in this article is specific to 
+			Mongoose v5 and beyond.
+
+			<h2>Database Connection</h2>
+
+			Create a file <span class="path">./src/database.js</span> 
+			under the project root. 
+
+			Next, we will add a simple class with a method that connects to 
+			the database.
+
+			Your connection string will vary based on your installation.
+
+			Réf <span class="path">./src/database.js</span>
+
+			The <span class="path">require('mongoose')</span> call above
+			returns a Singleton object. It means that the first time you
+			call <span class="path">require('mongoose')</span>, iti is 
+			creating an instance of the Mongoose class and returning it.
+			On subsequent calls, it will return the same instance that was
+			created and returned o you the first time because of how module 
+			import/export works in ES6.
+
+			<img src="module_import_export.jpg" alt="singleton pattern" />
+
+			Similarly, we have turned our Database class into a singleton by returning
+			an instance of the class in the <span class="path">module.exports</span> 
+			statement because de only need a single connection to the database.
+
+			ES6 makes it very easy for us to create a singleton (single instance) 
+			pattern because of how the module loader works by caching the response of a
+			previously imported file.
+
+			<h2>Mongoose Schema vs. Model</h2>
+
+			A Mongoose model is a wrapper on the Mongoose schema. A Mongoose schema defines
+			the structure of the document, default values, validators, etc. whereas a 
+			Mongoose model provides an interface to the database for creating, querying,
+			updating, deleting records, etc.
+
+			Creating a Mongoose model comprises primarily of 3 parts: 
+
+			<h3>Referencing Mongoose</h3>
+
+			<div class="code">
+				let mongoose = require('mongoose')
+			</div>
+
+			This reference will be the same as the one that was returned when we 
+			connected to the database, which means the schema and model definitions will
+			not need to explicitly connect to the database.
+
+			<h3>Defining the Schema</h3>
+
+			A schema defines a document properties through an object where the key name
+			corresponds to the property name in the collection.
+
+			<div class="code">
+				let emailSchema = new mongoose.Schema({
+					email: String
+				})
+			</div>
+
+			Here we define a property called <strong>email</strong> with a schema type
+			<strong>String</strong> which maps to an internal validator that will be
+			triggered when the model is saved to the database. It will fail if the data
+			type of the value is not a string type.
+
+			The following Schema Types are permitted: 
+
+			<ul>
+				<li>Array</li>
+				<li>Boolean</li>
+				<li>Buffer</li>
+				<li>Date</li>
+				<li>Mixed (A generic / flexible data type)</li>
+				<li>Number</li>
+				<li>ObjectId</li>
+				<li>String</li>
+			</ul>
+			
+			Mixed and ObjectId are defined under 
+			<span class="path">require('mongoose').Schema.Types</span>.
+
+			<h3>Exporting a Model</h3>
+
+			We need to call the model constructor on the Mongoose instance and pass
+			it the name of the collection and a reference to the schema definition.
+
+			<div class="code">
+				module.exports = mongoose.model('Email', emailSchema)
+			</div>
+
+			Let's combine the above code into <span class="path">./src/models/email.js</span>
+			to define the contents of a basic email model: 
+
+			<div class="code">
+				let mongoose = require('mongoose')
+
+				let emailSchema = new mongoose.Schema({
+					email: String
+				})
+
+				module.exports = mongoose.model('Email', emailSchema)
+			</div>
+
+			A schema definition should be simple, but its complexity is usually based on
+			application requirements. Schemas can be reused and they can contain several
+			child-schemas too. In the example above, the value of the email property is a
+			simple value type. However, it can also be an object type with additional 
+			properties on it.
+
+			We can create an instance of the model we defined above and populate it using 
+			the following syntax: 
+
+			<div class="code">
+				let EmailModel = require('./email')
+
+				let msg = new EmailModel({
+					email: "ada.lovelace@gmail.com"
+				})
+			</div>
+
+			Let's enhance the Email schema to make the email property unique, required
+			field and convert the value tot lowercase before saving it. We can also add
+			a validation function that will ensure that the value is a valid email 
+			address. We will reference and use the validator library installed earlier.
+
+			<div class="code">
+				let mongoose = require('mongoose')
+				let validator = require('validator')
+
+				let emailSchema = new mongoose.Schema({
+					email: {
+						type: String,
+						required: true,
+						unique: true, 
+						lowercase: true, 
+						validate: value => validator.isEmail(value)
+					}
+				})
+
+				module.exports = mongoose.model('Email', emailSchema)
+			</div>
+
+			<h2>Basic Operations</h2>
+
+			Mongoose has a flexible API and provides many ways to accomplish a task. We
+			will not focus on the variations because that is out of scope for this
+			article, but remember that most of the oparitions can be done in more than
+			one way either syntactically or via the application architecture.
+
+			<h3>Create Record</h3>
+			Let's create an instance of the email model and save it to the database: 
+
+			<div class="code">
+				let EmailModel = require('./email')
+
+				let msg = new EmailModel({
+					email: 'ADA.LOVELACE@gmail.com'
+				})
+
+				msg.save() 
+					.then(doc => { console.log(doc) })
+					.catch(err => { console.error(error) })
+			</div>
+
+			The result is a document that is returned upon a successful save: 
+			<div class="code">
+				{
+					_id: 5a78fe3e2f44ba8f85a2409a,
+  					email: 'ada.lovelace@gmail.com',
+  					__v: 0 
+  				}
+  			</div>
+
+  			The following fields are returned (internal fields are prefixed with an
+  			underscore).
+  			<ol>
+  				<li>The <strong>_id</strong> field is auto-generated by Mongo and is
+  					a primary key of the collection. Its value is a unique identifier
+  				for the document.</li>
+  				<li>The value of the <strong>email</strong> field is returned. Notice that
+  					it is lower-cased because we specified the <strong>lowercase: true</strong>
+  					attribute in the schema.</li>
+  				<li><strong>__v</strong> is the versionKey property set on each document
+  					when first created by Mongoose, its value contains the inernal revision
+  				of the document.</li>
+  			</ol>
+ 
+  			If you try to repeat th esave opetion above, you will get an error because we
+  			have specified that the email field should be unique.
+
+  			<h3>Fetch Record</h3>
+
+  			Let's try to retrieve the record we saved to the database earlier. The model
+  			class exposes several static and instance methods to perform operations on the
+  			database. We will now try to find the record that we created previously using 
+  			the find method and pass the email as the search term. 
+
+  			<div class="code">
+  				EmailModel
+  					.find({
+  						email: 'ada.lovelace@gmail.com'
+  					})
+  					.then(doc => {
+  						console.log(doc);
+  					})
+  					.catch(err => {
+  						console.error(err)
+  					})
+  			</div>
+
+  			The document returned will be similar to what was discovered when we created
+  			the records: 
+  			<div class="code">
+  				{ 
+  					_id: 5a78fe3e2f44ba8f85a2409a,
+  					email: 'ada.lovelace@gmail.com',
+ 					__v: 0 
+				}
+			</div>
+
+			<h3>Update Record</h3>
+
+			Let's modify the record above by changing the email address and adding
+			another field to it, all in a single operation. For performance reasons, 
+			Mongoose won't return the updated document so we need to pass an 
+			additional parameter to ask for it:
+
+			<div class="code">
+				EmailModel
+					.findOneAndUpdate(
+						{
+							email: 'ada.lovelace@gmail.com' // search query
+						},
+						{
+							email: 'ada.nicename@gmail.com' // field: value to update
+						},
+						{
+							new: true, 			// return updated doc
+							runValidators: true // validate before update
+						}
+					)
+					.then(doc => {
+						console.log(doc)
+					})
+					.catch(err => {
+						console.error(err)
+					})
+				})
+			</div>
+
+			The document returned will contain the updated email: 
+
+			<div class="code">
+				{ 
+  					_id: 5a78fe3e2f44ba8f85a2409a,
+ 					email: 'theoutlander@live.com',
+ 					__v: 0 
+				}
+			</div>
+
+			<h3>Delete Record</h3>
+
+			We will use the <span class="path">findOneAndRemove</span> call to delete a 
+			record. It returns the original document that was removed: 
+
+			<div class="code">
+				EmailModel
+					.findOneAndRemove(
+						{
+							email: 'ada.nicename@gmail.com'
+						}
+					)
+					.then(response => {
+						console.log(response)
+					})
+					.catch(err => {
+						console.error(err)
+					})
+			</div>
+
+			<h2>Helpers</h2>
+			We have looked at some of the basic functionality above known as CRUD 
+			(Create, Read, Update, Delete) operations, but Mongoose also provides the
+			ability to configure several types of helper methods and properties. These
+			can be used to further simplify working with data.
+
+			Let's create a user schema in <span class="path">./src/models/user.js</span>
+			with the fields <strong>firstName</strong> and <strong>lastName</strong>:
+
+			<div class="code">
+				let mongoose = require('mongoose')
+
+				let userSchema = new mongoose.Schema({
+					firstName: String,
+					lastName: String
+				})
+
+				module.exports = mongoose.model('User', userSchema)
+			</div>
+
+			<h3>Virtual Property</h3>
+
+			A virtual property is not persisted to the database. We can add it to our 
+			schema as a helper to get and set values.
+
+			Let's create a virtual property called <strong>fullName</strong> which can
+			be used to set values on <strong>firstName</strong> and <b>lastName</b> and
+			retrieve them as a combined value when read:
+
+			<div class="code">
+				userSchema.virtual('fullName').get(function() {
+					return this.firstName + ' ' + this.lastName;
+				})
+
+				userSchema.virtual('fullname').set(function(name) {
+					let str = name.split(' ');
+					this.firstName = str[0]
+					this.lastName = str[1]
+				})
+			</div>
+
+			Callbacks for get and set must use the <b>function</b> keyword as we need
+			to access the model via <b>this</b> keyword. Using fat arrow functions will
+			change what <b>this</b> refers to.
+
+			Now we can set <b>firstName</b> and <b>lastName</b> by assigning a value to
+			<b>fullName</b>:
+
+			<div class="code">
+				let model = new UserModel();
+
+				model.fullName = 'James Bond'
+
+				console.log(model.toJSON()) // Output model fields as JSON
+				console.log()
+				console.log(model.fullName) // Output the full name
+			</div>
+
+			The code above will output the following:
+
+			<div class="code">
+				{ 	_id: 5a7a4248550ebb9fafd898cf,
+  					firstName: 'Thomas',
+  					lastName: 'Anderson' }
+  
+				Thomas Anderson
+			</div>
+
+			<h3>Instance Methods</h3>
+
+			We can create custom helper methods on the schema and access them via the
+			model instance. These methods will have access to the model object and they
+			can be used quite creatively. For instance, we could create a method to find 
+			all the people who have the same first name as the current instance.
+
+			In this example, let's create a function to return the initials for the 
+			current user. Let's add a custom helper method called <b>getInitials</b>
+			to the schema: 
+
+			<div class="code">
+				userSchema.methods.getInitials = function() {
+					return this.firstName[0] + this.lastName[0]
+				}
+			</div>
+
+			This method will be accessible via a model instance: 
+
+			<div class="code">
+				let model = new UserModel({
+					firstName: 'James',
+					lastName: 'Jones'
+				});
+
+				let initials = model.getInitials()
+				console.log(initials)
+			</div>
+
+			<h3>Static Methods</h3>
+
+			Similar to instance methods, we can create static methods on the schema.
+			Let's create a method to retrieve all users in the database:
+
+			<div class="code">
+				userSchema.statics.getUsers() = function() {
+					return new Promise((resolve, reject) => {
+						this.find((err, docs) => {
+							if(err) {
+								console.error(err)
+								return reject(err)
+							}
+
+							resolve(docs)
+						})
+					})
+				}
+			</div>
+
+			Calling <b>getUsers()</b> on the Model class will return all the users
+			in the database:
+
+			<div class="code">
+				UserModel.getUsers()
+					.then(docs => {
+						console.log(docs)
+					})
+					.catch(err => {
+						console.error(err)
+					})
+			</div>
+
+			Adding instance and static methods is a nice approach to implement to
+			database interactions on collections and records.
+
+			<h3>Middleware</h3>
+
+			Middleware are functions that run at specific stages of a pipeline. 
+			Mongoose supports middleware for the following operations: 
+			<ul>
+				<li>Aggregate</li>
+				<li>Document</li>
+				<li>Model</li>
+				<li>Query</li>
+			</ul>
+
+			For instance, models have <b>pre</b> and <b>post</b> functions that take
+			two parameters:
+
+			<ol>
+				<li>Type of event ('init', 'validate', 'save', 'remove')</li>
+				<li>A callback that is executed with <b>this</b> referencing the model
+				instance</li>
+			</ol>
+
+			<img src="pre_post_hooks.jpg" alt="Middleware pre and post hooks" />
+
+			Let's try an example by adding two fields called <b>createdAt</b> and
+			<b>updatedAt</b> to our schema: 
+
+			<div class="code">
+				let mongoose = require('mongoose')
+
+				let userSchema = new mongoose.Schema({
+					firstName: String,
+					lastName: String,
+					createdAt: Date,
+					updatedAt: Date
+				})
+
+				module.exports = mongoose.model('User', userSchema)
+			</div>
+
+			When <b>model.save()</b> is called, there is a <b>pre('save', ...)</b> and
+			<b>post('save', ...)</b> event that is triggered. For the second parameter,
+			you can pass a function that is called when the event is triggered. These
+			functions take a parameter to the next function in the middleware chain.
+
+			Let's add a pre-save hook and set values for <b>createdAt</b> and 
+			<b>updatedAt</b>:
+
+			<div class="code">
+				userSchema.pre('save', function(next) {
+					let now = Date.now();
+					this.updatedAt = now;
+					// Set a value for createdAt if it is null
+					if(!this.createdAt)
+						this.createdAt = now
+
+					// Call the next function in the pre-save chain
+					next()
+				})
+			</div>
+
+			Let's create and save our model:
+
+			<div class="code">
+				let model = UserModel({
+					fullName: 'Thomas Jesk'
+				});
+
+				model.save()
+					.then(docs => {
+						console.log(docs)
+					})
+					.catch(err => {
+						console.error(err)
+					})
+			</div>
+
+			You should set values for <b>createdAt</b> and <b>updatedAt</b> when the
+			record that is created is printed:
+
+			<div class="code">
+				{ _id: 5a7bbbeebc3b49cb919da675,
+  					firstName: 'Thomas',
+  					lastName: 'Anderson',
+  					updatedAt: 2018-02-08T02:54:38.888Z,
+  					createdAt: 2018-02-08T02:54:38.888Z,
+ 					__v: 0 }
+			</div>
+
+			<h3>Plugins</h3>
+
+			Suppose that we want to track when a record was created and last updated on
+			every collection in our database. Instead of repeating the above process, 
+			we can create a plugin and apply it to every schema.
+
+			Let's create a file <span class="path">./src/model/plugins/timestamp.js</span>
+			and replicate the above functionality as a reusable module:
+
+			<div class="code">
+				module.exports = function timestamp(schema) {
+					schema.add({
+						createdAt: Date,
+						updatedAt: Date
+					});
+
+					schema.pre('save', functon(next) {
+						let now = Date.now()
+
+						this.updatedAt = now;
+
+						if(!this.createdAt)
+							this.createdAt = now
+
+						next()
+					})
+				}
+			</div>
+
+			To use this plugin, we simply pass it to the schemas that should be
+			given this functionality: 
+
+			<div class="code">
+				let timestampPlugin = require('./plugins/timestamp')
+				
+				userSchema.plugin(timestampPlugin)
+				emailSchema.plugin(timestampPlugin)
+			</div>
+
+			<h2>Query Building</h2>
+
+			Mongoose has a very rich API that handles many complex operatons supported
+			by MongoDB. Consider a query where we can incrementally build query
+			components. 
+
+			In this example, we are going to:
+
+			<ol>
+				<li>Find all users</li>
+				<li>Skip the first 100 records</li>
+				<li>Limit the results to 10 records</li>
+				<li>Sort the results by the firstName field</li>
+				<li>Select the firstName</li>
+				<li>Execute that query</li>
+			</ol>
+
+			<div class="code">
+				UserSchema.find()		   		// find all users
+					.skip(100)			   		// skip first 100 users
+					.limit(10)			   		// limit to 10 records
+					.sort({firstName: 1})  		// Sort ascending by firstName
+					.select({firstName: true})	// Select firstName only
+					.exec()						// execute the query
+					.then(docs => {	
+						console.log(docs)
+					})
+					.catch(err => {
+						console.error(err)
+					})
+			</div>
+
+			<h2>Closing</h2>
+
+			We have barely scratched the surface exploring some of the capabilities of
+			Mongoose. It is a rich library full of useful and powerful features that
+			make it a joy to work with data models in the application layer.
+
+			While you can interact with Mongo directly using Mongo Driver, Mongoose will
+			simplify that interaction by allowing you to model relationships between data
+			and validate them easily. 
+			<b>Fun fact: Mongoose</b> is created by <b>Valeri Karpov</b> who is an 
+			incredibly talented engineer!
+			He coined the term <a href="http://thecodebarbarian.com/2013/04/29//easy-web-prototyping-with-mongodb-and-nodejs"  target="_blank">The MEAN Stack</a>
+		</pre>
+	</body>
+</html>
