@@ -8,7 +8,7 @@
     "start": "nodemon app.js"
   },
   "keywords": [],
-  "author": "Tyran Creates",
+  "author": "Guillaume Coderunner <coderunner2077@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "cookie-session": "^1.4.0",
