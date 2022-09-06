@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "author": "Tyran Records",
+  "author": "Guillaume Coderunner <coderunner2077@gmail.com>",
   "description": "This is the frontend of my Exercise tracker application",
   "version": "0.1.1",
   "private": true,
